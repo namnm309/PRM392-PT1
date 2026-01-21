@@ -21,7 +21,7 @@ export default function ProductDetailScreen() {
 
   if (!product) {
     return (
-      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
         <ThemedView style={styles.container}>
           <ThemedText style={styles.errorText}>Không tìm thấy sản phẩm</ThemedText>
           <TouchableOpacity
@@ -30,6 +30,8 @@ export default function ProductDetailScreen() {
           >
             <ThemedText style={styles.buttonText}>Quay lại</ThemedText>
           </TouchableOpacity>
+
+          
         </ThemedView>
       </SafeAreaView>
     );
@@ -54,7 +56,7 @@ export default function ProductDetailScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ThemedView style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>

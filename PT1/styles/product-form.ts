@@ -37,6 +37,30 @@ export const productFormStyles = StyleSheet.create({
     borderWidth: 1,
     textAlignVertical: 'top',
   },
+  imagePickerButton: {
+    height: 200,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    overflow: 'hidden',
+  },
+  imagePreview: {
+    width: '100%',
+    height: '100%',
+  },
+  imagePlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imagePlaceholderText: {
+    fontSize: 16,
+  },
+  removeImageText: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 8,
+  },
   buttonContainer: {
     flexDirection: 'row',
     gap: 12,

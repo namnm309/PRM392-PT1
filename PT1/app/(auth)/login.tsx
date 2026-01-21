@@ -30,7 +30,11 @@ export default function LoginScreen() {
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <ThemedView style={styles.container}>
         <View style={styles.content}>
+          <ThemedText type="title" style={styles.title}>            
+            PT1-NamNMSE182871
+          </ThemedText>
           <ThemedText type="title" style={styles.title}>
+            
             Đăng Nhập
           </ThemedText>
 

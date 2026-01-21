@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { View, FlatList, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Redirect } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { ProductCard } from '@/components/ProductCard';
@@ -59,7 +60,7 @@ export default function ProductsScreen() {
   const styles = productsStyles;
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ThemedView style={styles.container}>
         <View style={styles.header}>
           <ThemedText type="title" style={styles.title}>
@@ -91,11 +92,13 @@ export default function ProductsScreen() {
           }
         />
 
+        {/* Floating Action Button */}
         <TouchableOpacity
-          style={[styles.addButton, { backgroundColor: colors.tint }]}
+          style={[styles.fab, { backgroundColor: colors.tint }]}
           onPress={handleAddProduct}
+          activeOpacity={0.8}
         >
-          <ThemedText style={styles.addButtonText}>+ Thêm Sản Phẩm</ThemedText>
+          <Ionicons name="add" size={28} color="#fff" />
         </TouchableOpacity>
       </ThemedView>
     </SafeAreaView>

@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { Product } from '@/types/product';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 
 interface ProductContextType {
   products: Product[];
@@ -10,6 +11,7 @@ interface ProductContextType {
 }
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
+const STORAGE_KEY = '@pt1/products';
 
 // Dữ liệu sản phẩm mẫu
 const initialProducts: Product[] = [
@@ -47,6 +49,40 @@ const initialProducts: Product[] = [
 
 export function ProductProvider({ children }: { children: ReactNode }) {
   const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        const storedProducts = await AsyncStorage.getItem(STORAGE_KEY);
+        if (storedProducts) {
+          setProducts(JSON.parse(storedProducts));
+        }
+      } catch (error) {
+        console.warn('Failed to load products:', error);
+      } finally {
+        setIsHydrated(true);
+      }
+    };
+
+    loadProducts();
+  }, []);
+
+  useEffect(() => {
+    if (!isHydrated) {
+      return;
+    }
+
+    const saveProducts = async () => {
+      try {
+        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(products));
+      } catch (error) {
+        console.warn('Failed to save products:', error);
+      }
+    };
+
+    saveProducts();
+  }, [products, isHydrated]);
 
   const addProduct = (product: Omit<Product, 'id'>) => {
     const newProduct: Product = {
