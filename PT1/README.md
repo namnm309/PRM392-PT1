@@ -298,6 +298,75 @@ const { id } = useLocalSearchParams<{ id: string }>();
 
 ---
 
+## 📚 State là gì?
+
+### **Khái niệm State**
+
+**State** là dữ liệu có thể thay đổi trong component. Khi state thay đổi, React sẽ tự động cập nhật UI.
+
+**Đơn giản:** State giống như một biến, nhưng khi thay đổi thì UI tự động cập nhật.
+
+### **Ví dụ từ code:**
+
+```typescript
+// Trong login.tsx
+const [username, setUsername] = useState('');
+const [password, setPassword] = useState('');
+
+// username = giá trị hiện tại (ban đầu là '')
+// setUsername = hàm để thay đổi giá trị
+```
+
+### **Cách hoạt động:**
+
+```typescript
+// 1. Khởi tạo state
+const [username, setUsername] = useState(''); 
+// username = '' (rỗng)
+
+// 2. User nhập "admin" vào TextInput
+onChangeText={setUsername} 
+// → setUsername('admin') được gọi
+// → username thay đổi thành 'admin'
+// → React tự động re-render component
+// → TextInput hiển thị "admin"
+```
+
+### **State trong Context (Global State):**
+
+```typescript
+// AuthContext.tsx
+const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+// ProductContext.tsx
+const [products, setProducts] = useState<Product[]>(initialProducts);
+```
+
+**Giải thích:**
+- `isAuthenticated`: state toàn cục, tất cả components có thể đọc
+- `products`: state chứa danh sách sản phẩm
+- Khi state thay đổi → tất cả components sử dụng state đó sẽ tự động update
+
+### **Quan trọng:**
+
+1. **Không thay đổi state trực tiếp:**
+```typescript
+// ❌ SAI
+products.push(newProduct); // Không được!
+
+// ✅ ĐÚNG
+setProducts([...products, newProduct]); // Phải dùng setter
+```
+
+2. **State thay đổi → Component re-render:**
+```typescript
+setUsername('admin');
+// → Component tự động chạy lại
+// → UI hiển thị giá trị mới
+```
+
+---
+
 ## 🔐 Triển khai Login
 
 ### 1. **AuthContext Setup**
@@ -886,14 +955,67 @@ export default function ProductFormScreen() {
 }
 ```
 
-**Flow CREATE:**
-1. User nhập thông tin sản phẩm (name, description)
-2. Chọn ảnh (thư viện hoặc camera) → lưu URI vào state
-3. Nhấn "Lưu" → validation (check name và image)
-4. Gọi `addProduct()` từ context
-5. Context tạo ID mới (`Date.now().toString()`) và thêm vào state
-6. `useEffect` detect thay đổi → tự động save vào AsyncStorage
-7. Alert thành công → navigate về danh sách
+**Flow CREATE chi tiết:**
+
+```
+Bước 1: User nhập thông tin và nhấn "Lưu"
+    ↓
+Bước 2: handleSave() trong product-form.tsx
+    ↓
+Bước 3: Gọi addProduct() từ ProductContext
+    ↓
+Bước 4: addProduct() thực hiện:
+    - Tạo ID mới: Date.now().toString()
+    - Thêm vào state: setProducts([...prev, newProduct])
+    ↓
+Bước 5: State products thay đổi
+    ↓
+Bước 6: useEffect detect thay đổi → TỰ ĐỘNG LƯU vào AsyncStorage
+    ↓
+Bước 7: Dữ liệu đã được lưu vào thiết bị
+```
+
+**Code chi tiết:**
+
+```typescript
+// 1. User nhấn "Lưu" trong form
+addProduct({ 
+  name: name.trim(), 
+  image: image.trim(), 
+  description: description.trim() 
+});
+
+// 2. Function addProduct trong ProductContext
+const addProduct = (product: Omit<Product, 'id'>) => {
+  const newProduct: Product = {
+    ...product,
+    id: Date.now().toString(), // ID = timestamp hiện tại
+  };
+  setProducts((prev) => [...prev, newProduct]);
+  // prev = mảng cũ
+  // [...prev, newProduct] = copy mảng cũ + thêm sản phẩm mới
+};
+
+// 3. useEffect tự động lưu (trong ProductContext)
+useEffect(() => {
+  if (!isHydrated) return; // Chưa load xong → không save
+
+  const saveProducts = async () => {
+    await AsyncStorage.setItem(
+      '@pt1/products',           // Key
+      JSON.stringify(products)   // Value (chuyển array thành JSON string)
+    );
+  };
+  saveProducts();
+}, [products, isHydrated]); // Chạy lại khi products thay đổi
+```
+
+**Giải thích:**
+- Khi `setProducts()` chạy → `products` state thay đổi
+- `useEffect` phát hiện → gọi `saveProducts()`
+- `JSON.stringify(products)` chuyển mảng thành chuỗi JSON
+- `AsyncStorage.setItem()` lưu vào thiết bị
+- **Không cần gọi save thủ công - tự động!**
 
 ### 2. **READ - Đọc/Xem sản phẩm**
 
@@ -998,14 +1120,49 @@ export default function ProductFormScreen() {
 }
 ```
 
-**Flow UPDATE:**
-1. Navigate với `id`: `router.push('/(tabs)/product-form?id=123')`
-2. Component detect `id` → `isEditMode = true`
-3. `useEffect` load dữ liệu sản phẩm hiện tại vào form
-4. User chỉnh sửa thông tin
-5. Nhấn "Lưu" → validation → gọi `updateProduct(id, {...})`
-6. Context update state bằng `map()` → tự động save AsyncStorage
-7. Alert → navigate back
+**Flow UPDATE chi tiết:**
+
+```
+Bước 1: User nhấn "Sửa" trong product-detail.tsx
+    ↓
+Bước 2: Navigate đến product-form với id
+    ↓
+Bước 3: User chỉnh sửa thông tin và nhấn "Lưu"
+    ↓
+Bước 4: Gọi updateProduct(id, {...}) từ ProductContext
+    ↓
+Bước 5: updateProduct() thực hiện:
+    - Tìm sản phẩm có id tương ứng
+    - Thay thế bằng dữ liệu mới
+    - setProducts() cập nhật state
+    ↓
+Bước 6: State products thay đổi
+    ↓
+Bước 7: useEffect tự động lưu vào AsyncStorage
+```
+
+**Code chi tiết:**
+
+```typescript
+// 1. User nhấn "Lưu" sau khi sửa
+updateProduct(id, { 
+  name: name.trim(), 
+  image: image.trim(), 
+  description: description.trim() 
+});
+
+// 2. Function updateProduct
+const updateProduct = (id: string, product: Omit<Product, 'id'>) => {
+  setProducts((prev) =>
+    prev.map((p) => 
+      // Nếu id khớp → thay thế bằng sản phẩm mới
+      // Nếu không khớp → giữ nguyên
+      p.id === id ? { ...product, id } : p
+    )
+  );
+  // setProducts() cập nhật state → useEffect tự động lưu
+};
+```
 
 ### 4. **DELETE - Xóa sản phẩm**
 
@@ -1054,13 +1211,38 @@ export default function ProductDetailScreen() {
 }
 ```
 
-**Flow DELETE:**
-1. User nhấn nút "Xóa" trong màn hình chi tiết
-2. Alert xác nhận hiển thị
-3. Nếu confirm → gọi `deleteProduct(id)`
-4. Context filter sản phẩm khỏi state bằng `filter()`
-5. `useEffect` detect thay đổi → tự động save AsyncStorage
-6. Navigate về danh sách
+**Flow DELETE chi tiết:**
+
+```
+Bước 1: User nhấn "Xóa" trong product-detail.tsx
+    ↓
+Bước 2: Alert xác nhận
+    ↓
+Bước 3: User xác nhận → Gọi deleteProduct(id)
+    ↓
+Bước 4: deleteProduct() thực hiện:
+    - Filter bỏ sản phẩm có id đó
+    - setProducts() cập nhật state
+    ↓
+Bước 5: State products thay đổi
+    ↓
+Bước 6: useEffect tự động lưu vào AsyncStorage
+```
+
+**Code chi tiết:**
+
+```typescript
+// 1. User xác nhận xóa
+deleteProduct(product.id);
+
+// 2. Function deleteProduct
+const deleteProduct = (id: string) => {
+  setProducts((prev) => 
+    prev.filter((p) => p.id !== id) // Bỏ sản phẩm có id đó
+  );
+  // setProducts() cập nhật state → useEffect tự động lưu
+};
+```
 
 ---
 
@@ -1260,6 +1442,75 @@ export function ProductProvider({ children }) {
 - ✅ Tự động load khi mở lại app
 - ✅ Tự động lưu khi có thay đổi
 - ✅ Lưu trữ dạng JSON string
+
+### **Tóm tắt cơ chế lưu tự động**
+
+**Sơ đồ hoạt động:**
+
+```
+┌─────────────────────────────────────────┐
+│  User thao tác (CRUD)                   │
+│  ↓                                       │
+│  Gọi function (add/update/delete)        │
+│  ↓                                       │
+│  setProducts() → State thay đổi          │
+│  ↓                                       │
+│  useEffect detect thay đổi              │
+│  ↓                                       │
+│  AsyncStorage.setItem()                  │
+│  ↓                                       │
+│  Dữ liệu lưu vào thiết bị                │
+└─────────────────────────────────────────┘
+```
+
+**Điểm quan trọng:**
+
+1. **Không cần gọi save thủ công:**
+   - `useEffect` tự động lưu khi `products` state thay đổi
+   - Bạn chỉ cần gọi `addProduct()`, `updateProduct()`, hoặc `deleteProduct()`
+   - Việc lưu vào AsyncStorage được xử lý tự động
+
+2. **`isHydrated` để tránh ghi đè:**
+   - Chỉ save sau khi đã load xong dữ liệu từ AsyncStorage
+   - Tránh trường hợp overwrite dữ liệu khi app khởi động
+
+3. **Dữ liệu tồn tại sau khi đóng app:**
+   - AsyncStorage lưu trên thiết bị (persistent storage)
+   - Mở lại app → tự động load dữ liệu đã lưu
+
+**Ví dụ cụ thể:**
+
+```typescript
+// 1. Thêm sản phẩm
+addProduct({ name: 'iPad Mini', image: '...', description: '...' });
+// → setProducts([...products, newProduct])
+// → products state thay đổi
+// → useEffect chạy
+// → AsyncStorage.setItem('@pt1/products', JSON.stringify(products))
+// → Đã lưu!
+
+// 2. Sửa sản phẩm
+updateProduct('1', { name: 'iPhone 16', ... });
+// → setProducts(products.map(...))
+// → products state thay đổi
+// → useEffect chạy
+// → AsyncStorage.setItem(...)
+// → Đã lưu!
+
+// 3. Xóa sản phẩm
+deleteProduct('1');
+// → setProducts(products.filter(...))
+// → products state thay đổi
+// → useEffect chạy
+// → AsyncStorage.setItem(...)
+// → Đã lưu!
+```
+
+**Kiểm tra dữ liệu đã lưu:**
+1. Thêm/sửa/xóa sản phẩm
+2. Đóng app hoàn toàn
+3. Mở lại app
+4. Dữ liệu vẫn còn → đã lưu thành công ✅
 
 ---
 
